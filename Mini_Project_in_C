@@ -1,0 +1,336 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+#include <string.h>
+#include <stdbool.h>
+
+typedef struct casa{
+char adresa[30];
+unsigned int tel;
+unsigned int supr;
+unsigned int nrOd;
+unsigned int price;
+}casa;
+
+FILE *fp;
+unsigned int n;
+
+void alocare(casa **ptr,unsigned int i){
+    *ptr=(struct casa*)calloc(i,sizeof(struct casa));
+}
+
+void desc(unsigned int a){
+    if (a==1){
+        fp=fopen("Binary.file.bin","wb");
+        if(fp==NULL){
+            printf("Nu se poate crea fisierul.");
+            exit(1);
+        }
+    }
+    else if(a==2){
+        fp=fopen("Binary.file.bin","rb+");
+        if(fp==NULL){
+            printf("Nu se poate deschide fisierul, sau el nu exista.\n");
+            exit(1);
+        }
+    }
+}
+
+int main(){
+    meniu();
+    return 0;
+}
+
+void meniu(){
+    struct casa *ptr;
+    system("cls");
+    printf("Optiuni:\n");
+    printf("1.Crearea unui fisier binar nou;\n");
+    printf("2.Afisarea elementelor fisierului binar la ecran;\n");
+    printf("3.Adaugarea unei structuri noi la sfarsit de fisier;\n");
+    printf("4.Modificarea unei structuri a fisierului;\n");
+    printf("5.Cautarea dupa camp al structurii in fisier;\n");
+    printf("6.Sortarea structurilor fisierului dupa careva camp;\n");
+    printf("7.Eliminarea unei structuri din fisier;\n");
+    printf("8.Stergerea fisierului de pe disc;\n");
+    printf("0.Iesire din program.\n");
+    printf("\nAlegeti una din variantele propuse: ");
+    int x;
+    scanf("%d",&x);
+    system("cls");
+    switch(x){
+        case 1:{
+            creare(ptr);
+            break;
+        }
+        case 2:{
+            afisare(ptr);
+            break;
+        }
+        case 3:{
+            AddStr(ptr);
+            break;
+        }
+        case 4:{
+            Modif(ptr);
+            break;
+        }
+        case 5:{
+            caut(ptr);
+            break;
+        }
+        case 6:{
+            sortare(ptr);
+            break;
+        }
+        case 7:{
+            elim(ptr);
+            break;
+        }
+        case 8:{
+            printf("Intradevar doriti sa stergeti fisierul cu date?\n1.DA\n2.NU\n");
+            unsigned int answ;
+            scanf("%u",&answ);
+            if(answ==1){
+                remove("Binary.file.bin");
+                printf("Fisierul a fost sters cu succes.\n");
+                printf("Tastati orice buton pentru a va intoarce la meniu.\n");
+                getch();
+                meniu();
+            }
+            else meniu();
+        }
+        case 0:{
+            exit(0);
+        }
+    }
+}
+
+void elim(casa *ptr){
+    unsigned int nr;
+    FILE *fp2;
+    ptr=(casa*)malloc(sizeof(casa));
+    printf("Introduceti numarul tabletei, datele careia doriti sa le stergeti:\n");
+    scanf("%u",&nr);
+    desc(2);
+    fp2=fopen("Binary.file2.bin","wb");
+    if(fp2==NULL){
+        printf("Noul fisier nu a putut fi creat");
+        exit(1);
+    }
+    fread(&n,sizeof(unsigned int),1,fp);
+    if(nr>=n){
+        printf("Nu exita asa numar de structura. Incercati din nou.");
+        exit(1);
+    }
+    for(int i=0;i<n;i++){
+        fread(ptr,sizeof(casa),1,fp);
+        if(i!=nr){
+            fwrite(ptr,sizeof(casa),1,fp2);
+        }
+    }
+    fclose(fp);
+    fclose(fp2);
+    desc(1);
+    fp2=fopen("Binary.file2.bin","rb");
+    if(fp2==NULL){
+        printf("Fisierul nu a putut fi modificat");
+        exit(1);
+    }
+    n--;
+    fwrite(&n,sizeof(unsigned int),1,fp);
+     while(fread(ptr,sizeof(casa),1,fp2)){
+        fwrite(ptr,sizeof(casa),1,fp);
+    }
+    fclose(fp2);
+    fclose(fp);
+    printf("Structura a fost eliminata cu succes!\n");
+    printf("Tastati orice buton pentru a va intoarce la meniul principal\n");
+    getch();
+    system("cls");
+    remove("Binary.file2.bin");
+    meniu();
+}
+
+void caut(casa *ptr){
+    printf("Cautarea dupa pret:\n");
+    unsigned int Sprice;
+    printf("Introduceti pretul dorit:\n");
+    scanf("%u",&Sprice);
+    desc(2);
+    bool flag=false;
+    ptr=(casa*)malloc(sizeof(casa));
+    fseek(fp,sizeof(unsigned int),SEEK_CUR);
+    while(fread(ptr,sizeof(casa),1,fp)!=0){
+        if(ptr->price<=Sprice+1000 && ptr->price>=Sprice-1000){
+            printf("Au fost gasite urmatoarele optiuni:\n");
+            printf("Adresa casei: ");
+            puts(ptr->adresa);
+            printf("Numarul de telefon: %u\n",ptr->tel);
+            printf("Suprafata locuintei: %u\n",ptr->supr);
+            printf("Numarul de odai: %u\n",ptr->nrOd);
+            printf("Pretul : %u\n\n",ptr->price);
+            flag=true;
+        }
+    }
+    fclose(fp);
+    if(!flag){
+            printf("Nu au fost gasite rezultate.");
+            printf("Tastati un buton pentru a va intoarce la meniul principal.\n");
+            getch();
+            meniu();
+    }
+    printf("Tastati un buton pentru a va intoarce la meniul principal.\n");
+    getch();
+    meniu();
+}
+
+void sortare(casa *ptr){
+    desc(2);
+    fread(&n,sizeof(int),1,fp);
+    alocare(&ptr,n);
+    fread(ptr,sizeof(casa),n,fp);
+    fclose(fp);
+        bool flag=true;
+        while(flag){
+            flag=false;
+            for(int i=0;i<n-1;i++){
+                if((ptr+i)->price>(ptr+i+1)->price){
+                    casa *temp;
+                    temp=(casa*)malloc(sizeof(casa));
+                    *temp=*(ptr+i);
+                    *(ptr+i)=*(ptr+i+1);
+                    *(ptr+i+1)=*temp;
+                    flag=true;
+                }
+            }
+        }
+    desc(2);
+    fseek(fp,sizeof(unsigned int),SEEK_CUR);
+    fwrite(ptr,sizeof(casa),n,fp);
+    fclose(fp);
+    free(ptr);
+    printf("Structurile au fost sortate crescator dupa pret.\n\n");
+    afisare();
+}
+
+void Modif(casa *ptr){
+    system("cls");
+    printf("Introduceti numarul structurii care doriti sa o modificati: ");
+    unsigned int a;
+    scanf("%u",&a);
+    getchar();
+    desc(2);
+    fread(&n,sizeof(unsigned int),1,fp);
+    fclose(fp);
+    if(a>=n){
+        printf("In fisier nu se contine structura introdusa");
+        printf("\nTastati enter pentru a va intoarce la meniu\n");
+        getch();
+        meniu();
+    }
+    printf("Introduceti datele noi\n");
+    printf("Introduceti adresa: ");
+    ptr=(casa*)malloc(sizeof(struct casa));
+    gets(ptr->adresa);
+    printf("Introduceti Numarul de telefon:\n");
+    scanf("%d",&ptr->tel);
+    printf("Introduceti suprafata locuintei:\n");
+    scanf("%d",&ptr->supr);
+    printf("Introduceti Numarul de odai:\n");
+    scanf("%d",&ptr->nrOd);
+    printf("Introduceti pretul locuintei:\n");
+    scanf("%d",&ptr->price);
+    desc(2);
+    fseek(fp,sizeof(unsigned int)+a*sizeof(struct casa),SEEK_CUR);
+    fwrite(ptr,sizeof(casa),1,fp);
+    fclose(fp);
+    free(ptr);
+    meniu();
+}
+
+void creare(casa *ptr){
+    system("cls");
+    printf("Introduceti numarul de locuinte: ");
+    scanf("%u",&n);
+    alocare(&ptr,n);
+    for(int i=0;i<n;i++){
+        getchar();
+        printf("\n");
+        printf("Introduceti adresa %d\n",i+1);
+        gets((ptr+i)->adresa);
+        printf("Introduceti Numarul de telefon:\n");
+        scanf("%d",&(ptr+i)->tel);
+        printf("Introduceti suprafata locuintei:\n");
+        scanf("%d",&(ptr+i)->supr);
+        printf("Introduceti Numarul de odai:\n");
+        scanf("%d",&(ptr+i)->nrOd);
+        printf("Introduceti pretul locuintei:\n");
+        scanf("%d",&(ptr+i)->price);
+    }
+    desc(1);
+    fwrite(&n,sizeof(n),1,fp);
+    fwrite(ptr,sizeof(casa),n,fp);
+    fclose(fp);
+    free(ptr);
+    meniu();
+}
+
+void afisare(casa *ptr){
+    desc(2);
+    fread(&n,sizeof(unsigned int),1,fp);
+    alocare(&ptr,n);
+    fread(ptr,sizeof(struct casa),n,fp);
+    fclose(fp);
+    printf("Informatiile despre locuinte:\n");
+    for(int i=0;i<n;i++){
+        printf("Adresa locuintei %d: ",i+1);
+        puts((ptr+i)->adresa);
+        printf("Telefon: %u\n",(ptr+i)->tel);
+        printf("Suprafata: %u\n",(ptr+i)->supr);
+        printf("Numarul de odai: %u\n",(ptr+i)->nrOd);
+        printf("Pretul : %d\n\n",(ptr+i)->price);
+    }
+    free(ptr);
+    printf("Tastati orice buton pentru intoarcere la meniu\n");
+    getch();
+    meniu();
+}
+
+void AddStr(casa *ptr){
+    system("cls");
+    printf("Introduceti numarul de locuinte pe care doriti sa le introduceti:");
+    unsigned int y;
+    scanf("%u",&y);
+    ptr=(casa*)malloc(sizeof(casa));
+    ptr=(casa*)realloc(ptr,(y*sizeof(casa)));// Adaugat doar pentru demonstrarea cum merge functia realloc!
+    for(unsigned int i=0;i<y;i++){
+        getchar();
+        printf("\n");
+        printf("Introduceti adresa %d\n",i+1);
+        gets((ptr+i)->adresa);
+        printf("Introduceti Numarul de telefon:\n");
+        scanf("%d",&(ptr+i)->tel);
+        printf("Introduceti suprafata locuintei:\n");
+        scanf("%d",&(ptr+i)->supr);
+        printf("Introduceti numarul de odai:\n");
+        scanf("%d",&(ptr+i)->nrOd);
+        printf("Introduceti pretul locuintei:\n");
+        scanf("%d",&(ptr+i)->price);
+    }
+    fp=fopen("Binary.file.bin","ab+");
+    if(fp==NULL){
+        printf("Fisierul nu a putut fi gasit");
+        exit(1);
+    }
+    fwrite(ptr,sizeof(casa),y,fp);
+    fseek(fp,0,SEEK_SET);
+    fread(&n,sizeof(unsigned int),1,fp);
+    fclose(fp);
+    n+=y;
+    desc(2);
+    fwrite(&n,sizeof(unsigned int),1,fp);
+    fclose(fp);
+    free(ptr);
+    meniu();
+}
